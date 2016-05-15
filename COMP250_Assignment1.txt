@@ -1,0 +1,338 @@
+//260688975
+//Yu-Yueh Liu
+//I used ArrayList and Arrays in this assignment
+import java.util.*;
+
+       public Number convert(Number A, short Base) {
+           Number B=new Number();
+           //initialize B.Int and B.Base
+           B.Int = new short[A.Base*A.Int.length];
+           B.Base=Base;
+
+           //Converting Integer part from A.Base to B.Base
+           //STEP 1.1
+           short [] R = changeBase(Base,A.Base);
+
+           //STEP 1.2 to 1.4
+           //(X)_B to (U)_R
+           int i = 0;
+           while(!checkZero(A.Int)){
+               B.Int[i] = modulo(A.Int, R, A.Base);
+               A.Int = division3(A.Int, R, A.Base);
+               i++;
+           }
+	   //Resmove extra 0 in resulting array
+           B.Int = resize(B.Int);
+
+           //Converting Fractional part from A.Base to B.Base
+           //by multiplication
+           int size = A.NonRep.length;
+           int counter = 0;
+           int index = 0;
+           //two storage ArrayList to keep track of remainder and the decimal part
+           ArrayList<Short> Remainder = new ArrayList<Short>();
+           ArrayList<Short> aList = new ArrayList<Short>();
+           while(counter<1000) {
+               A.NonRep = resize(multiply(A.NonRep, B.Base, A.Base));
+               short temp = toShort(A.NonRep);
+               //checking for repeating decimal
+               if(aList.contains(temp)){
+                   index = aList.indexOf(temp);
+                   break;
+               }
+               //keeping track of remainder
+               aList.add(toShort(A.NonRep));
+               if(A.NonRep.length>size) {
+                   Remainder.add(A.NonRep[size]);
+                   A.NonRep[size]=0;
+               }else {
+                   Remainder.add((short)0);
+               }
+               counter++;
+           }
+
+           //I used this to check the content of Remainder
+           /*
+           int temp1;
+           int g = Remainder.size();
+           short[] V = new short[g];
+           for (int l = 0; l < g; l++) {
+               temp1 = Remainder.get(l);
+               V[l] = (short) temp1;
+           }
+           //System.out.println(Arrays.toString(V));
+           */
+
+           //Storing the Non Repeating Fractional part in Number B
+           B.NonRep=new short[index];
+           int L1 = B.NonRep.length-1;
+           for(int u = 0;u<index;u++) {
+               B.NonRep[L1--] = Remainder.get(u);
+           }
+           //Storing the Repeating Fractional part in Number B
+           B.Rep=new short[Remainder.size()-index];
+           int L2 = B.Rep.length-1;
+           for(int e = index;e<Remainder.size();e++){
+               B.Rep[L2--] = Remainder.get(e);
+           }
+           return B;
+        }
+
+        //Helper Method to convert short Array to a Short
+        public short toShort(short[] x){
+            short a = 0;
+            int b = 0;
+            for(int i = 0;i<x.length;i++){
+                //in all bases, the base itself is 10.
+                b += (int)(x[i]* Math.pow(10,i));
+                a = (short) b;
+            }
+            return a;
+        }
+
+        //Helper Method that changes a number from decimal to base B in array of short
+        public short[] changeBase(short m, short B){
+            short[] array = new short[6];
+            int counter = 0;
+            if(m>0) {
+                for (int i = 0; m > 0; i++) {
+                    array[i] = (short) (m % B);
+                    m /= B;
+                    counter++;
+                }
+            }else {
+                array[0]=0;
+                counter++;
+            }
+            short[] A = new short[counter];
+            for(int j = 0; j<counter;j++){
+                A[j] = array[j];
+            }
+            return A;
+        }
+
+        //Helper Method that changes a number from decimal to base B in short
+        public short changeBase2(short m, short B) {
+            int b = 0;
+            if(m==1){
+                return 1;
+            } else if(m==0){
+                return 0;
+            }
+            for (int i = 0; m > 0; i++) {
+                b += ((m % B) * Math.pow(10, i));
+                m /= B;
+            }
+            short c = (short)b;
+            return c;
+        }
+
+        //SUBTRACTION METHOD
+        public short[] subtraction(short [] x, short[] y, short Base){
+            //initialize variables
+            short N = (short)Math.max(x.length, y.length);
+            short [] b = new short[N];
+            short carry = 0;
+            short [] a = x.clone();
+            short [] negative = {-1,-1,-1};
+
+            //Case 1 dividend > divisor
+            if(x.length>=y.length) {
+                for (int i = 0; i < y.length; i++) {
+                    if (a[i] - y[i] < 0 && (i+1)<x.length) {
+                        carry = Base;
+                        a[i + 1] -= 1;
+                        b[i] = (short) ((a[i]+carry-y[i])%Base);
+                    }else {
+                        b[i] = (short) (a[i] - y[i]);
+                    }
+                }for (int i = y.length; i < N;i++){
+                    b[i] = a[i];
+                }for(int i = b.length-1;i>0;i--){
+                    if(b[i]<0){
+                        return negative;
+                    }
+                }
+
+            //Case 2 divisor > dividend
+            }else if(a.length<y.length){
+                for (int i = 0; i < y.length; i++) {
+                    if (a[i] - y[i] < 0 && (i + 1) < x.length) {
+                        carry = Base;
+                        a[i + 1] -= 1;
+                        b[i] = (short) ((a[i] + carry - y[i]) % Base);
+                    } else {
+                        b[i] = (short) (a[i] - y[i]);
+                    }
+                }for (int i = x.length; i < N;i++) {
+                    b[i] = y[i];
+                }for(int i = b.length-1;i>0;i--){
+                    if(b[i]<0){
+                        return negative;
+                    }
+                }
+            }
+            return b;
+        }
+
+        //Helper Method to resize an array with leading zeros
+        public short[] resize(short[] x){
+            short [] zero = {0};
+            int d = 0;
+            for(int i = x.length-1;i>=0;i--){
+                if(x[i]!=0){
+                    break;
+                }
+                d = i;
+                if(checkZero(x)){
+                   return zero;
+                }
+            }
+            if(d>0){
+                short[] Nx = new short[d];
+                for (int u = 0; u < d; u++) {
+                    Nx[u] = x[u];
+                }
+                return Nx;
+            }else {
+                return x;
+            }
+        }
+
+        //Helper Method that shifts an array
+        //Used in division to shift divisor with dividend in order to subtract
+	//essentially, resizes the array making it bigger and filling the end with zeros
+        public short[] shift(short[] x, int i){
+            short[] k = new short[i];
+            if(k.length<x.length){
+                return x;
+            }
+            for(int j=0;j<x.length;j++){
+                k[k.length-1-j]=x[x.length-1-j];
+            }
+            return k;
+        }
+
+        //LONG DIVISION METHOD
+        //only works if dividend > divisor
+        public short[] division3(short[] x, short[] y, short Base){
+            //initialize variables
+            int p = x.length-y.length;
+            short[] N = new short[p+1];
+            short [] z = y.clone();
+            short [] v = x.clone();
+            int xL = x.length;
+            int yL = y.length;
+            int count = 0;
+            //If Dividend > divisor
+            if(xL>yL) {
+                for (int u = xL; u >= yL; u--) {
+                    count++;
+                    y = shift(z, u);
+                    int counter = 0;
+                    innerloop:
+                    for (int i = 0; i < 100000; i++) {
+			//check if subtraction is valid, else break the loop
+                        if (checkNegative(subtraction(v, y, Base))) {
+                            break innerloop;
+                        }
+                        v = subtraction(v, y, Base);
+                        counter++;
+                    }
+                    N[N.length - count] = (short) counter;
+                }
+            }
+            //If divisor > dividend , will return empty N;
+            return N;
+        }
+
+        //Helper Method that checks if an array contains negative numbers
+        //(check if array is negative)
+        public boolean checkNegative(short[] g) {
+            for (int i = g.length - 1; i >= 0; i--) {
+		//if element < 0 then array is negative
+                if (g[i] < 0) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        //Helper Method that checks if array contains ALL ZEROS
+        //(check if array is empty)
+        public boolean checkZero(short[] g) {
+            for (int i = g.length - 1; i >= 0; i--) {
+                if (g[i] != 0) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        //MODULO METHOD
+	//Returns the remainder of the division x/y
+        //essentially the same as division but returns a short
+        public short modulo(short [] x, short [] y, short Base){
+            //initialize variables
+            int p = x.length-y.length;
+            short[] N = new short[p+1];
+            short [] z = y.clone();
+            short [] v = x.clone();
+            short [] temp = new short[0];
+            int xL = x.length;
+            int yL = y.length;
+            int count = 0;
+            //division
+            for (int u=xL;u>=yL;u--) {
+                count++;
+                y=shift(z,u);
+                int counter = 0;
+                innerloop:
+                for (int i = 0; i < 100000; i++) {
+                    if(checkNegative(subtraction(v, y, Base))){
+                        break innerloop;
+                    }
+                    v = subtraction(v, y, Base);
+                    counter++;
+                }
+            }
+            short r = 0;
+            for(int q = 0;q<v.length;q++){
+                r += v[q] * Math.pow(10,q);
+            }
+            short R = changeBase2(r,Base);
+            return R;
+        }
+
+        //MULTIPLICATION METHOD
+	//Multiplies short[] by a short
+        public short[] multiply(short [] x, short y, short Base){
+            //ArrayList storing product
+            ArrayList<Short> product = new ArrayList<Short>();
+            short carry = 0;
+            for(int i = 0;i<x.length;i++){
+                //CASE 1 product of elements >= Base
+                if(i<x.length && x[i]*y+carry>=Base){
+                    product.add(i,(short)((x[i]*y+carry)%Base));
+                    carry = (short)((x[i]*y+carry)/Base);
+                //CASE 2 product of elements < Base
+                }else if(i<x.length && x[i]*y+carry<Base){
+                    product.add(i,(short)((x[i]*y+carry)));
+                    carry = 0;
+                //If at the end of the loop there is a carry
+                }if(i+1>=x.length && carry>0) {
+                    product.add(i + 1, carry);
+                    carry = 0;
+                }
+            }
+            //Storing elements of ArrayList into short[]
+            int temp;
+            int k = product.size();
+            short[] B = new short[k];
+            for (int j = 0; j < k; j++) {
+                temp = product.get(j);
+                B[j] = (short) temp;
+            }
+            return B;
+        }
+
